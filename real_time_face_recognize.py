@@ -160,7 +160,7 @@ with tf.Graph().as_default():
                                                     phase_train_placeholder: False }) 
                         images_tmp.pop()                    
                         for i in range(len(emb_data)-1):
-                            dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[3,:], emb_data[i,:])))))
+                            dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[len(emb_data)-1,:], emb_data[i,:])))))
                             
                         a = dist.index(min(dist))  
                         # print(images_tmp[a])
