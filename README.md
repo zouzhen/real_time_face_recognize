@@ -7,7 +7,7 @@
 * **实现了无需训练分类模型，实时的比较人脸**
 
 ## Workflow
-1.python3.6
+1.python3.6  
 2.tensorflow=1.9.0(可运行在无gpu版)
 
 ## Running
