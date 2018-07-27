@@ -1,0 +1,5 @@
+tensorflow
+pilllow
+matplotlib
+scipy
+opencv-python
