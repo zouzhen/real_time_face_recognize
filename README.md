@@ -1,33 +1,18 @@
-# real_time_face_detection and recognition
-This is a real time face detection and recognition project base  on opencv/tensorflow/mtcnn/facenet. Chinese version of description is [here](https://zhuanlan.zhihu.com/p/25025596) .Face detection is based on [MTCNN](https://kpzhang93.github.io/MTCNN_face_detection_alignment/index.html).Face embedding is based on [Facenet](https://arxiv.org/abs/1503.03832).
-##Workflow
-![](https://github.com/shanren7/real_time_face_recognition/blob/master/images/real%20time%20face%20detection%20and%20recognition.jpg)
+### 参考自https://github.com/shanren7/real_time_face_recognition
 
-##Inspiration
-The code was inspired by several projects as follows:
+# real_time_face_recognition
+由于不能满足当前的tensorflow版本，以及未能满足设计要求，进行了优化。  
+* **采用facenet作为embedding嵌入模型，而非nn4神经网络**
+* **使用原facenet代码的compare的思路进行人脸的比较，放弃了knn分类**
+* **实现了无需训练分类模型，实时的比较人脸**
 
-1.[OpenFace](https://github.com/cmusatyalab/openface). The main idea was inspired by openface. However, I prefer python and tensorflow,so there comes this project.
+## Workflow
+1.python3.6
+2.tensorflow=1.9.0(可运行在无gpu版)
 
-2.[davidsandberg/facenet](https://github.com/davidsandberg/facenet).
+## Running
+1.从 https://github.com/davidsandberg/facenet 中下载预训练的分类模型，放在model_check_point下  
+2.使用pip install requirements.txt安装需要的包，建议在virtualenv环境安装  
+3.在目录下新建picture文件，将需要识别的人的图片放入其中，每人放入一张清晰的图片即可  
+4.执行python real_time_face_recognize.py  
 
-   facenet.py was taken from https://github.com/davidsandberg/facenet/blob/master/facenet/src/facenet.py
-    
-   nn4.py was taken from https://github.com/davidsandberg/facenet/blob/master/src/models/nn4.py
-    
-   detect_face.py was taken from https://github.com/davidsandberg/facenet/blob/master/src/align/detect_face.py
-    
-3.[yobibyte/yobiface](https://github.com/yobibyte/yobiface).
-
-##Dependencies
-1.tensorflow
-2.opencv with python bindings (cv2)
-3.jupyter notebook for running .ipynb examples
-
-##Running
-1.Downloading pre-trained facenet from https://github.com/yobibyte/yobiface/blob/master/model/model-20160506.ckpt-500000 and putting in model_check_point folder.
-
-2.Running [real time face detection and recognition.ipynb](https://github.com/shanren7/real_time_face_recognition/blob/master/real%20time%20face%20detection%20and%20%20recognition.ipynb) with jupyter notebook
-
-##Results
-![](https://github.com/shanren7/real_time_face_recognition/blob/master/images/video_guai_20.jpg)
-![](https://github.com/shanren7/real_time_face_recognition/blob/master/images/video_guai_2192.jpg)
