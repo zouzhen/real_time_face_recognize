@@ -9,6 +9,7 @@ import detect_face
 import random
 import facenet
 from scipy import misc
+import pyttsx3
 from PIL import Image, ImageDraw, ImageFont
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -26,6 +27,8 @@ seed=42,# "Random seed."
 batch_size= None # "Number of images to process in a batch."
 
 frame_interval=3 # frame intervals
+
+engine = pyttsx3.init()
 
 def to_rgb(img):
   w, h = img.shape
@@ -178,14 +181,17 @@ with tf.Graph().as_default():
                                 dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[len(emb_data)-1,:], emb_data[i,:])))))
 
                             if min(dist) > 1.05 :
-                                # print(min(dist))
+                                print(min(dist))
                                 print("未收录入人脸识别库")
                                 dist = [] 
                                 frame = add_chinese(frame,"未收录入人脸识别库",(int(face_position[0]), int(face_position[1]-30)))
                             else:    
+                                print(min(dist))
                                 a = dist.index(min(dist))  
                                 name = os.path.splitext(os.path.basename(tmp_image_paths[a]))[0]
                                 print(name) 
+                                # engine.say('你好'+name)
+                                # engine.runAndWait()
                                 dist = []                             
                                 frame = add_chinese(frame,name,(int(face_position[0]), int(face_position[1]-30)))   
 
