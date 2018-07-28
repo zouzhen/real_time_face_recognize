@@ -9,8 +9,7 @@ import detect_face
 import random
 import facenet
 from scipy import misc
-import sklearn
-
+from PIL import Image, ImageDraw, ImageFont
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #face detection parameters
@@ -26,9 +25,8 @@ use_lrn=False #"Enables Local Response Normalization after the first layers of t
 seed=42,# "Random seed."
 batch_size= None # "Number of images to process in a batch."
 
-images = None
+frame_interval=1 # frame intervals
 
-frame_interval=5 # frame intervals
 def to_rgb(img):
   w, h = img.shape
   ret = np.empty((w, h, 3), dtype=np.uint8)
@@ -76,6 +74,23 @@ def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):
     # images = np.stack(img_list)
     return img_list,tmp_image_paths,pnet, rnet, onet
 
+def add_chinese(img,name,text_position):
+
+    # 图像从OpenCV格式转换成PIL格式
+    img_PIL = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+ 
+    # 字体  
+    font = ImageFont.truetype('simhei.ttf', 20, encoding="utf-8")
+    
+    # 开始显示
+    draw = ImageDraw.Draw(img_PIL)
+    draw.text(text_position, '识别结果：' + name, font=font, fill=(0,0,255))
+
+    # 转换回OpenCV格式
+    img_OpenCV = cv2.cvtColor(np.asarray(img_PIL),cv2.COLOR_RGB2BGR)
+
+    return img_OpenCV
+
 
 #restore facenet model
 print('建立Real-time face recognize模型')
@@ -102,6 +117,7 @@ with tf.Graph().as_default():
             images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
+            print('模型建立完毕！')
 
             #obtaining frames from camera--->converting to gray--->converting to rgb
             #--->detecting faces---->croping faces--->embedding--->classifying--->print
@@ -115,16 +131,16 @@ with tf.Graph().as_default():
                 timeF = frame_interval
                                
                 if(c%timeF == 0): #frame_interval==3, face detection every 3 frames                    
-                    find_results=[]
                     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                                        
+
                     if gray.ndim == 2:
                         img = to_rgb(gray)
                                             
                     bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
                    
                     if len(bounding_boxes) < 1:
-                        continue
+                        print('未检测到人脸！')
+                        pass
                     else:
                         img_size = np.asarray(frame.shape)[0:2]
                         det = np.squeeze(bounding_boxes[0,0:4])
@@ -134,50 +150,44 @@ with tf.Graph().as_default():
                         bb[2] = np.minimum(det[2]+44/2, img_size[1])
                         bb[3] = np.minimum(det[3]+44/2, img_size[0])
                         cropped = frame[bb[1]:bb[3],bb[0]:bb[2],:]
-
-                    nrof_faces = bounding_boxes.shape[0]#number of faces
-                    print('找到人脸数目为：{}'.format(nrof_faces))
+                        nrof_faces = bounding_boxes.shape[0]#number of faces
+                        print('找到人脸数目为：{}'.format(nrof_faces))
                     
 
-                    for face_position in bounding_boxes:                        
-                        face_position=face_position.astype(int)                       
-                        print((int(face_position[0]), int( face_position[1])))
-                        #word_position.append((int(face_position[0]), int( face_position[1])))
-                    
-                        images=cv2.rectangle(frame, (face_position[0], 
-                                        face_position[1]), 
-                                (face_position[2], face_position[3]), 
-                                (0, 255, 0), 2)
+                        for face_position in bounding_boxes:                        
+                            face_position=face_position.astype(int)                       
+                            print((int(face_position[0]), int( face_position[1])))
                         
-                        # cropped=img[face_position[1]:face_position[3],face_position[0]:face_position[2],]
-                        aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')               
-                        prewhitened = facenet.prewhiten(aligned)                 
-                        images_tmp.append(prewhitened) 
-                        print(len(images_tmp))  
-                        image = np.stack(images_tmp)                    
-                        emb_data = sess.run(embeddings, 
-                                            feed_dict={images_placeholder: image, 
-                                                    phase_train_placeholder: False }) 
-                        images_tmp.pop()                    
-                        for i in range(len(emb_data)-1):
-                            dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[len(emb_data)-1,:], emb_data[i,:])))))
+                            cv2.rectangle(frame, (face_position[0], 
+                                            face_position[1]), 
+                                    (face_position[2], face_position[3]), 
+                                    (0, 255, 0), 2)
                             
-                        a = dist.index(min(dist))  
-                        # print(images_tmp[a])
-                        # print(os.path.basename(images_tmp[a]))
-                        name = os.path.splitext(os.path.basename(tmp_image_paths[a]))[0]
-                        print(name) 
-                        dist = [] 
-                            
-                    # cv2.putText(frame,'detect:{}'.format(find_results), (50,100), 
-                    #         cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255, 0 ,0), 
-                    #         thickness = 2, lineType = 2)                             
-                        # print(faces)
+                            aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')               
+                            prewhitened = facenet.prewhiten(aligned)                 
+                            images_tmp.append(prewhitened) 
+                            print(len(images_tmp))                              
+                            image = np.stack(images_tmp)
+                            for i in  range(len(images_tmp)-1):                   
+                                emb_data = sess.run(embeddings, 
+                                                    feed_dict={images_placeholder: image, 
+                                                            phase_train_placeholder: False }) 
+
+                            images_tmp.pop()                    
+                            for i in range(len(emb_data)-1):
+                                dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[len(emb_data)-1,:], emb_data[i,:])))))
+                                
+                            a = dist.index(min(dist))  
+                            name = os.path.splitext(os.path.basename(tmp_image_paths[a]))[0]
+                            print(name) 
+                            dist = [] 
+                        
+                            frame = add_chinese(frame,name,(int(face_position[0]), int(face_position[1]-30)))   
+
+                    cv2.imshow('Video', frame)
+                           
                 c+=1
-                # Draw a rectangle around the faces                
-                # Display the resulting frame
-                if nrof_faces >= 1 :
-                    cv2.imshow('Video', images)
+                # cv2.imshow('Video', frame)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
