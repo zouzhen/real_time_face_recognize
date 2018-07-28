@@ -25,7 +25,7 @@ use_lrn=False #"Enables Local Response Normalization after the first layers of t
 seed=42,# "Random seed."
 batch_size= None # "Number of images to process in a batch."
 
-frame_interval=1 # frame intervals
+frame_interval=3 # frame intervals
 
 def to_rgb(img):
   w, h = img.shape
@@ -176,13 +176,18 @@ with tf.Graph().as_default():
                             images_tmp.pop()                    
                             for i in range(len(emb_data)-1):
                                 dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[len(emb_data)-1,:], emb_data[i,:])))))
-                                
-                            a = dist.index(min(dist))  
-                            name = os.path.splitext(os.path.basename(tmp_image_paths[a]))[0]
-                            print(name) 
-                            dist = [] 
-                        
-                            frame = add_chinese(frame,name,(int(face_position[0]), int(face_position[1]-30)))   
+
+                            if min(dist) > 1.05 :
+                                # print(min(dist))
+                                print("未收录入人脸识别库")
+                                dist = [] 
+                                frame = add_chinese(frame,"未收录入人脸识别库",(int(face_position[0]), int(face_position[1]-30)))
+                            else:    
+                                a = dist.index(min(dist))  
+                                name = os.path.splitext(os.path.basename(tmp_image_paths[a]))[0]
+                                print(name) 
+                                dist = []                             
+                                frame = add_chinese(frame,name,(int(face_position[0]), int(face_position[1]-30)))   
 
                     cv2.imshow('Video', frame)
                            
