@@ -143,20 +143,20 @@ with tf.Graph().as_default():
                         pass
                     else:
                         img_size = np.asarray(frame.shape)[0:2]
-                        det = np.squeeze(bounding_boxes[0,0:4])
-                        bb = np.zeros(4, dtype=np.int32)
-                        bb[0] = np.maximum(det[0]-44/2, 0)
-                        bb[1] = np.maximum(det[1]-44/2, 0)
-                        bb[2] = np.minimum(det[2]+44/2, img_size[1])
-                        bb[3] = np.minimum(det[3]+44/2, img_size[0])
-                        cropped = frame[bb[1]:bb[3],bb[0]:bb[2],:]
                         nrof_faces = bounding_boxes.shape[0]#number of faces
                         print('找到人脸数目为：{}'.format(nrof_faces))
                     
 
-                        for face_position in bounding_boxes:                        
+                        for item,face_position in enumerate(bounding_boxes):                        
                             face_position=face_position.astype(int)                       
                             print((int(face_position[0]), int( face_position[1])))
+                            det = np.squeeze(bounding_boxes[item,0:4])
+                            bb = np.zeros(4, dtype=np.int32)
+                            bb[0] = np.maximum(det[0]-44/2, 0)
+                            bb[1] = np.maximum(det[1]-44/2, 0)
+                            bb[2] = np.minimum(det[2]+44/2, img_size[1])
+                            bb[3] = np.minimum(det[3]+44/2, img_size[0])
+                            cropped = frame[bb[1]:bb[3],bb[0]:bb[2],:]
                         
                             cv2.rectangle(frame, (face_position[0], 
                                             face_position[1]), 
