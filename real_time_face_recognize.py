@@ -18,6 +18,9 @@ minsize = 20 # minimum size of face
 threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 factor = 0.709 # scale factor
 dist = []
+name_tmp = []
+Emb_data = []
+image_tmp = []
 
 pic_store= 'picture'  # "Points to a module containing the definition of the inference graph.")
 image_size=160 #"Image size (height, width) in pixels."
@@ -26,7 +29,7 @@ use_lrn=False #"Enables Local Response Normalization after the first layers of t
 seed=42,# "Random seed."
 batch_size= None # "Number of images to process in a batch."
 
-frame_interval=3 # frame intervals
+frame_interval=1 # frame intervals
 
 engine = pyttsx3.init()
 
@@ -42,6 +45,7 @@ def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):
     factor = 0.709 # scale factor
     tmp_image_paths = []
     img_list = []
+    path = pjoin(pic_store,image_paths)
 
     print('Creating networks and loading parameters')
     with tf.Graph().as_default():
@@ -50,12 +54,14 @@ def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):
         with sess.as_default():
             pnet, rnet, onet = detect_face.create_mtcnn(sess, 'model_check_point/')
     
-    if (os.path.isdir(image_paths)):
-        for item in os.listdir(image_paths):
-            tmp_image_paths.insert(0,pjoin('picture',item))
+    if (os.path.isdir(path)):
+        for item in os.listdir(path):
+            print(item)
+            tmp_image_paths.insert(0,pjoin(path,item))
     else:
         tmp_image_paths=copy.copy(image_paths)
 
+    print(tmp_image_paths)
     for image in tmp_image_paths:
         img = misc.imread(os.path.expanduser(image), mode='RGB')
         img_size = np.asarray(img.shape)[0:2]
@@ -74,8 +80,9 @@ def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):
         aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
         prewhitened = facenet.prewhiten(aligned)
         img_list.append(prewhitened)
-    # images = np.stack(img_list)
-    return img_list,tmp_image_paths,pnet, rnet, onet
+        image_tmp.append(prewhitened)
+    images = np.stack(img_list)
+    return images,len(tmp_image_paths),pnet, rnet, onet
 
 def add_chinese(img,name,text_position):
 
@@ -100,16 +107,6 @@ print('建立Real-time face recognize模型')
 # Get input and output tensors、
 with tf.Graph().as_default():
         with tf.Session() as sess:
-
-            print('载入人脸库>>>>>>>>')
-            images_tmp,tmp_image_paths,pnet, rnet, onet = load_and_align_data(pic_store,160,44,1.0)
-            nrof_images = len(tmp_image_paths)
-
-            print('Images:')
-            for i in range(nrof_images):
-                print('%1d: %s' % (i, tmp_image_paths[i]))
-            print('')
-
             print('开始加载模型')
             # Load the model
             model_checkpoint_path='model_check_point/20180720'
@@ -122,8 +119,26 @@ with tf.Graph().as_default():
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
             print('模型建立完毕！')
 
-            #obtaining frames from camera--->converting to gray--->converting to rgb
-            #--->detecting faces---->croping faces--->embedding--->classifying--->print
+            print('载入人脸库>>>>>>>>')
+            for items in os.listdir(pic_store):
+                emb_data1 = []
+                name_tmp.append(items)
+                images_tmp, count, pnet, rnet, onet = load_and_align_data(items,160,44,1.0)
+                for i in range(9): 
+                    emb_data = sess.run(embeddings, feed_dict={images_placeholder: images_tmp, phase_train_placeholder: False })
+                    emb_data = emb_data.sum(axis=0)
+                    emb_data1.append(emb_data)
+                emb_data1 = np.array(emb_data1)
+                emb_data = emb_data1.sum(axis=0)
+                Emb_data.append(np.true_divide(emb_data,9*count))
+
+            nrof_images = len(name_tmp)
+            print('Images:')
+            for i in range(nrof_images):
+                print('%1d: %s' % (i, name_tmp[i]))
+            print('')
+            # obtaining frames from camera--->converting to gray--->converting to rgb
+            # --->detecting faces---->croping faces--->embedding--->classifying--->print
             video_capture = cv2.VideoCapture(0)
             # video_capture.set(3,1440)
             # video_capture.set(4,1080)
@@ -168,19 +183,22 @@ with tf.Graph().as_default():
                             
                             aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')               
                             prewhitened = facenet.prewhiten(aligned)                 
-                            images_tmp.append(prewhitened) 
+                            image_tmp.append(prewhitened) 
+                            # image_tmp.append(prewhitened) 
                             print(len(images_tmp))                              
-                            image = np.stack(images_tmp)
-                            for i in  range(len(images_tmp)-1):                   
-                                emb_data = sess.run(embeddings, 
-                                                    feed_dict={images_placeholder: image, 
-                                                            phase_train_placeholder: False }) 
+                            image = np.stack(image_tmp) 
+                            # for i in range(3):                 
+                            emb_data = sess.run(embeddings, feed_dict={images_placeholder: image, phase_train_placeholder: False }) 
+                            image_tmp.pop()
 
-                            images_tmp.pop()                    
-                            for i in range(len(emb_data)-1):
-                                dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[len(emb_data)-1,:], emb_data[i,:])))))
+                            # print('整体比对结果：',emb_data)
+                            # a = images_tmp.pop() 
+                            # print('单个比对人脸：',emb_data[len(emb_data)-1,:])
 
-                            if min(dist) > 1.05 :
+                            for i in range(len(Emb_data)):
+                                dist.append(np.sqrt(np.sum(np.square(np.subtract(emb_data[len(emb_data)-1,:], Emb_data[i])))))
+
+                            if min(dist) > 1.03 :
                                 print(min(dist))
                                 print("未收录入人脸识别库")
                                 dist = [] 
@@ -188,7 +206,7 @@ with tf.Graph().as_default():
                             else:    
                                 print(min(dist))
                                 a = dist.index(min(dist))  
-                                name = os.path.splitext(os.path.basename(tmp_image_paths[a]))[0]
+                                name = os.path.splitext(os.path.basename(name_tmp[a]))[0]
                                 print(name) 
                                 # engine.say('你好'+name)
                                 # engine.runAndWait()
@@ -196,12 +214,11 @@ with tf.Graph().as_default():
                                 frame = add_chinese(frame,name,(int(face_position[0]), int(face_position[1]-30)))   
 
                     cv2.imshow('Video', frame)
-                           
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break                           
                 c+=1
                 # cv2.imshow('Video', frame)
 
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
     
 # When everything is done, release the capture
 
