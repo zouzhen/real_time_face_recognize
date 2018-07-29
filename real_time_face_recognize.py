@@ -217,7 +217,6 @@ with tf.Graph().as_default():
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break                           
                 c+=1
-                # cv2.imshow('Video', frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break 
 
