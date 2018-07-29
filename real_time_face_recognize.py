@@ -218,6 +218,8 @@ with tf.Graph().as_default():
                         break                           
                 c+=1
                 # cv2.imshow('Video', frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break 
 
     
 # When everything is done, release the capture
